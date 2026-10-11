@@ -1,0 +1,72 @@
+# High-EQ Reply Assistant
+
+一个面向复杂社交场景的生成式 AI 沟通助手。项目目标是帮助用户在高压对话中生成“高情商、守边界、可执行”的回复，降低沟通失误与情绪消耗。
+
+## 项目定位
+
+这是一个个人作品集项目，聚焦「LLM 在真实沟通决策场景中的可控生成」问题，不是通用聊天机器人，而是面向职场与人际冲突场景的垂直工具。
+
+## 我解决的核心问题
+
+在现实对话中，用户常见痛点是：
+
+- 需要快速回复，但又担心“说错话”
+- 既要保持礼貌，又要维护个人边界
+- 对方语气复杂（被动攻击、情绪施压）时难以组织有效表达
+
+传统规则树难以覆盖高语境社交中的大量隐含语义，因此我采用生成式 AI 方案，并通过结构化提示工程提升输出稳定性。
+
+## 方案设计
+
+### 1) 系统架构
+
+- 前端：轻量 Web 界面（HTML / Vanilla JS）
+- 后端：FastAPI
+- 模型接入：通过 HKBU GenAI API 聚合多模型（GPT / DeepSeek / Gemini / Qwen）
+- 部署：Railway
+
+### 2) 核心机制：Context-Aware Prompt Architecture
+
+我将“高情商回复”拆成一个可执行流程，强制模型走 System-2 风格推理链路：
+
+1. **意图识别**：先识别对方文本中的潜在攻击性或情绪压力
+2. **行为约束**：抑制模型过度道歉、过度迎合的默认倾向
+3. **四风格生成**：一次生成四种可选语气  
+   - Witty（机智）  
+   - Diplomatic（圆融）  
+   - Direct（直接）  
+   - Empathetic（共情）
+
+这样用户可以保留最终决策权，而不是被单一回复绑架。
+
+## 评估框架
+
+为了把“高情商”从主观感受转为可比较指标，我定义了四维评估矩阵：
+
+- **Empathy & Politeness**：是否体现同理与礼貌
+- **Boundary Management**：是否有效守住边界
+- **Clarity & Effectiveness**：是否表达清晰、可执行
+- **Context Appropriateness**：是否符合场景中的权力关系与语境
+
+并通过盲测对比基线模型（zero-shot 原生输出）与优化后输出，验证干预效果。
+
+## 结果与结论
+
+根据报告中的盲测结果，优化后的架构相较原生输出有明显提升：
+
+- 显著降低“机械化、模板化”的回复感受
+- 避免早期“过度尖锐”的语气失控问题
+- 在“边界管理”和“场景适配”两个维度获得更高用户偏好
+
+结论：在加入结构化约束与评估机制后，LLM 可以从通用对话工具升级为“高语境沟通辅助系统”。
+
+## 仓库内容
+
+- `7040-report.docx`：完整项目报告
+- `7040-OBABA-PPT.pdf`：项目展示材料
+- `code/`：核心实现代码（前后端与模型接入）
+- `Phase1/`：阶段性开发内容
+
+## 可用于简历的项目描述（英文）
+
+> Built a context-aware LLM communication assistant for high-stakes social conversations. Designed a structured prompt architecture with intent analysis, behavioral constraints, and four-tone response generation (Witty, Diplomatic, Direct, Empathetic). Implemented a FastAPI-based multi-model gateway and validated quality improvements via a four-dimensional EQ evaluation matrix and blind user comparisons.
