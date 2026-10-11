@@ -67,6 +67,4 @@
 - `code/`：核心实现代码（前后端与模型接入）
 - `Phase1/`：阶段性开发内容
 
-## 可用于简历的项目描述（英文）
 
-> Built a context-aware LLM communication assistant for high-stakes social conversations. Designed a structured prompt architecture with intent analysis, behavioral constraints, and four-tone response generation (Witty, Diplomatic, Direct, Empathetic). Implemented a FastAPI-based multi-model gateway and validated quality improvements via a four-dimensional EQ evaluation matrix and blind user comparisons.
