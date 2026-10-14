@@ -2,6 +2,12 @@
 
 一个面向复杂社交场景的生成式 AI 沟通助手。项目目标是帮助用户在高压对话中生成“高情商、守边界、可执行”的回复，降低沟通失误与情绪消耗。
 
+## 演示
+
+[![演示视频](docs/demo-cover.png)](docs/demo.mp4)
+
+点击图片查看完整演示视频（约 3 分钟）：即时高情商回复（Agent 模式：感知 → 策略 → 撰写 → 评审）与场景沙盘推演。
+
 ## 项目定位
 
 这是一个个人作品集项目，聚焦「LLM 在真实沟通决策场景中的可控生成」问题，不是通用聊天机器人，而是面向职场与人际冲突场景的垂直工具。
@@ -175,6 +181,7 @@ python eval/eval_harness.py --gen-model qwen3.8-max --judge-model deepseek-v4-pr
 │   └── eval/               # 测试集、评测脚本与评测结果
 ├── docs/
 │   ├── 7040-report.docx    # 完整项目报告
-│   └── 7040-OBABA-PPT.pdf  # 项目展示材料
+│   ├── 7040-OBABA-PPT.pdf  # 项目展示材料
+│   └── demo.mp4            # 演示视频
 └── render.yaml             # Render 部署配置
 ```
