@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "login_title": "会话设置",
             "login_sub": "配置你的环境以开启高情商对话",
             "login_api_lbl": "API KEY",
-            "login_api_pl": "请输入您的 API 密钥",
+            "login_api_pl": "可留空，默认使用服务器 Key",
             "login_model_lbl": "SELECT LARGE MODEL",
             "login_btn": "进入策展引擎",
             "login_help": "需要帮助寻找密钥？ 查看文档",
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "login_title": "Session Setup",
             "login_sub": "Configure your environment to start EQ conversations",
             "login_api_lbl": "API KEY",
-            "login_api_pl": "Enter your API Key...",
+            "login_api_pl": "Optional - leave blank to use the server key",
             "login_model_lbl": "SELECT LARGE MODEL",
             "login_btn": "ENTER CURATOR ENGINE",
             "login_help": "Need help finding your key? View Docs",
@@ -228,11 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedKey = localStorage.getItem('curator_api_key');
     if(savedKey) apiKeyInput.value = savedKey;
 
+    // API Key 留空时由后端使用服务器配置的 Key
     startSessionBtn.addEventListener('click', () => {
-        if(!apiKeyInput.value.trim()) {
-            alert("请输入您的 API Key！");
-            return;
-        }
         localStorage.setItem('curator_api_key', apiKeyInput.value.trim());
         
         loginView.classList.remove('active');
@@ -476,6 +473,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Feature 1: Instant Reply ---
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
+    function renderReplyResult(data) {
+        document.getElementById('instant-reply').classList.add('has-results');
+        document.getElementById('reply-results').classList.remove('hidden');
+        document.getElementById('reply-explanation').innerText = data.explanation || "";
+        [1, 2, 3].forEach(i => {
+            document.getElementById(`reply-opt-${i}`).innerText = data[`reply_${i}`] || "";
+            document.getElementById(`reply-tag-${i}`).innerText = `Option ${'ABC'[i - 1]}`;
+        });
+
+        const insight = document.getElementById('agent-insight');
+        if (data.mode !== 'agent') {
+            insight.classList.add('hidden');
+            insight.innerHTML = '';
+            return;
+        }
+        (data.candidates || []).forEach((c, idx) => {
+            const tag = document.getElementById(`reply-tag-${idx + 1}`);
+            if (tag) tag.innerText = `Option ${'ABC'[idx]} · ${c.total}/25${idx === 0 ? ' · Recommended' : ''}`;
+        });
+        const a = data.analysis || {};
+        const s = data.strategy || {};
+        const tactics = (a.pressure_tactics || []).join(', ') || '—';
+        const latency = data.total_latency_ms ? `${(data.total_latency_ms / 1000).toFixed(1)}s` : '';
+        insight.innerHTML = `
+            <div><b>Intent:</b> ${escapeHtml(a.sender_intent)}</div>
+            <div><b>Subtext:</b> ${escapeHtml(a.hidden_subtext)}</div>
+            <div><b>Pressure tactics:</b> ${escapeHtml(tactics)} &nbsp; <b>Risk:</b> ${escapeHtml(a.risk_level)}</div>
+            <div><b>Goal:</b> ${escapeHtml(s.goal)}</div>
+            <div><b>Plan:</b> ${escapeHtml(s.sequence)}</div>
+            <div style="opacity: 0.7;">${(data.trace || []).length} steps${data.revised ? ' · revised once after self-review' : ''}${latency ? ' · ' + latency : ''}</div>`;
+        insight.classList.remove('hidden');
+    }
+
     document.getElementById('generate-reply-btn').addEventListener('click', async () => {
         const message = document.getElementById('reply-message').value.trim();
         if(!message) { alert("请填入对方发来的消息！"); return; }
@@ -507,7 +543,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showLoading();
         try {
-            const res = await fetch(`${BACKEND_URL}/api/instant-reply`, {
+            const endpoint = document.getElementById('agent-mode').checked ? 'agent-reply' : 'instant-reply';
+            const res = await fetch(`${BACKEND_URL}/api/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -520,13 +557,8 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
 
             if(res.ok && result.data) {
-                document.getElementById('instant-reply').classList.add('has-results');
-                document.getElementById('reply-results').classList.remove('hidden');
-                document.getElementById('reply-explanation').innerText = result.data.explanation || "";
-                document.getElementById('reply-opt-1').innerText = result.data.reply_1 || "";
-                document.getElementById('reply-opt-2').innerText = result.data.reply_2 || "";
-                document.getElementById('reply-opt-3').innerText = result.data.reply_3 || "";
-                
+                renderReplyResult(result.data);
+
                 // Add to History
                 const rawTone = document.getElementById('reply-tone').value;
                 const titleText = context ? `${context} - 回复生成` : (message.length > 10 ? message.substring(0,10)+'...' : message);
@@ -590,13 +622,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Re-load History on click
             card.addEventListener('click', () => {
-                document.getElementById('instant-reply').classList.add('has-results');
-                document.getElementById('reply-results').classList.remove('hidden');
-                document.getElementById('reply-explanation').innerText = item.data.explanation || "";
-                document.getElementById('reply-opt-1').innerText = item.data.reply_1 || "";
-                document.getElementById('reply-opt-2').innerText = item.data.reply_2 || "";
-                document.getElementById('reply-opt-3').innerText = item.data.reply_3 || "";
-                
+                renderReplyResult(item.data);
+
                 // Highlight active card
                 document.querySelectorAll('.history-card').forEach(c => c.style.borderColor = "var(--border-color)");
                 card.style.borderColor = "var(--accent-green)";

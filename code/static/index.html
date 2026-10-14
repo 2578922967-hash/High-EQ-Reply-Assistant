@@ -27,13 +27,9 @@
                 <div class="form-group">
                     <label data-i18n="login_model_lbl">SELECT LARGE MODEL</label>
                     <select id="model-select" class="dark-input">
-                        <option value="gpt-4.1">GPT-4.1 (Default)</option>
-                        <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-                        <option value="gpt-5">GPT-5</option>
-                        <option value="o1">o1</option>
-                        <option value="deepseek-v3">DeepSeek V3</option>
-                        <option value="deepseek-r1">DeepSeek R1</option>
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                        <option value="qwen3.8-max">Qwen 3.8 Max (Default)</option>
+                        <option value="qwen3.8-flash">Qwen 3.8 Flash (Fast)</option>
+                        <option value="deepseek-v4-pro">DeepSeek V4 Pro (Slow)</option>
                     </select>
                 </div>
 
@@ -167,6 +163,10 @@
                         </div>
                     </div>
 
+                    <label style="display: flex; align-items: center; gap: 8px; color: var(--text-sec); font-size: 13px; cursor: pointer;">
+                        <input type="checkbox" id="agent-mode" checked>
+                        <span>Agent mode: analyze → plan → write → self-review (slower, more controlled)</span>
+                    </label>
                     <button class="primary-btn submit-btn" id="generate-reply-btn" data-i18n="btn_gen_reply">✨ GENERATE EQ REPLY</button>
                 </div>
 
@@ -175,17 +175,18 @@
                     <div id="reply-results" class="results-area hidden">
                         <h3 data-i18n="result_ai_analyze">AI Analysis & Breakthrough Strategy</h3>
                         <p id="reply-explanation" style="color: var(--text-sec); line-height: 1.6;"></p>
+                        <div id="agent-insight" class="hidden" style="color: var(--text-sec); font-size: 13px; line-height: 1.7; border-left: 2px solid var(--accent-green); padding-left: 12px; margin: 12px 0;"></div>
                         <div class="reply-options">
                             <div class="reply-box">
-                                <h4>Option A</h4>
+                                <h4 id="reply-tag-1">Option A</h4>
                                 <p id="reply-opt-1"></p>
                             </div>
                             <div class="reply-box">
-                                <h4>Option B</h4>
+                                <h4 id="reply-tag-2">Option B</h4>
                                 <p id="reply-opt-2"></p>
                             </div>
                             <div class="reply-box">
-                                <h4>Option C</h4>
+                                <h4 id="reply-tag-3">Option C</h4>
                                 <p id="reply-opt-3"></p>
                             </div>
                         </div>
@@ -259,13 +260,9 @@
                         <div>
                             <label style="color: var(--text-sec);" data-i18n="lbl_model">LANGUAGE MODEL | 模型选择</label>
                             <select id="settings-model" class="dark-input" style="margin-top: 8px;">
-                                <option value="gpt-4.1">GPT-4.1 (Default)</option>
-                                <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-                                <option value="gpt-5">GPT-5</option>
-                                <option value="o1">o1</option>
-                                <option value="deepseek-v3">DeepSeek V3</option>
-                                <option value="deepseek-r1">DeepSeek R1</option>
-                                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                <option value="qwen3.8-max">Qwen 3.8 Max (Default)</option>
+                                <option value="qwen3.8-flash">Qwen 3.8 Flash (Fast)</option>
+                                <option value="deepseek-v4-pro">DeepSeek V4 Pro (Slow)</option>
                             </select>
                         </div>
                     </div>
@@ -348,6 +345,6 @@
         <p style="font-family: 'Space Grotesk', sans-serif; letter-spacing: 2px;" data-i18n="loading_text">CURATOR AI 运作中...</p>
     </div>
 
-    <script src="/static/app.js?v=3.5"></script>
+    <script src="/static/app.js?v=3.6"></script>
 </body>
 </html>
