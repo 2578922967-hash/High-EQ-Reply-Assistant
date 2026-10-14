@@ -23,7 +23,7 @@
 - 前端：轻量 Web 界面（HTML / Vanilla JS）
 - 后端：FastAPI
 - 模型接入：统一的模型调用层，支持 HKBU GenAI 与任意 OpenAI 兼容接口（当前使用阿里云百炼：Qwen 3.8 / DeepSeek V4）
-- 部署：Railway
+- 部署：Render（配置见 `render.yaml`，早期版本部署于 Railway）
 
 ### 2) 核心机制：Context-Aware Prompt Architecture
 
