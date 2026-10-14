@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addHistoryItem(titleText, rawTone, result.data);
 
             } else {
-                alert(`后盾报错: ${result.detail || JSON.stringify(result)}`);
+                alert(`后端报错: ${result.detail || JSON.stringify(result)}`);
             }
         } catch(e) {
             hideLoading();

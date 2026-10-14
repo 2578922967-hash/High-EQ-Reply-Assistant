@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 import json
+import traceback
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import Optional
@@ -71,6 +72,7 @@ def agent_reply(req: InstantReplyRequest):
         result = run_agent_reply(req.message, req.tone, req.context, req.model, req.api_key)
         return {"status": "success", "data": result}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/sandbox-simulation")
