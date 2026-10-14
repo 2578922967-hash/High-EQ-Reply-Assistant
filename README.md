@@ -164,8 +164,17 @@ python eval/eval_harness.py --gen-model qwen3.8-max --judge-model deepseek-v4-pr
 
 ## 仓库内容
 
-- `7040-report.docx`：完整项目报告
-- `7040-OBABA-PPT.pdf`：项目展示材料
-- `code/`：核心实现代码（前后端、模型调用层、Agent 编排）
-- `code/eval/`：测试集、评测脚本与评测结果
-- `Phase1/`：阶段性开发内容
+```
+├── code/
+│   ├── backend_api.py      # FastAPI 入口，同时托管前端页面
+│   ├── agent_runtime.py    # 多阶段 Agent 编排（感知 → 策略 → 撰写 → 评审）
+│   ├── agent_prompts.py    # Agent 各阶段 Prompt
+│   ├── prompts.py          # v1 单次结构化 Prompt 与场景沙盘推演 Prompt
+│   ├── llm_client.py       # 统一模型调用层
+│   ├── static/             # 前端（HTML / CSS / JS）
+│   └── eval/               # 测试集、评测脚本与评测结果
+├── docs/
+│   ├── 7040-report.docx    # 完整项目报告
+│   └── 7040-OBABA-PPT.pdf  # 项目展示材料
+└── render.yaml             # Render 部署配置
+```

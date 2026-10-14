@@ -4,3 +4,8 @@ __pycache__/
 venv/
 .venv/
 .DS_Store
+~$*
+.~*
+
+Agent_Project_Manual.md
+Agent_Upgrade_Proposal.md
