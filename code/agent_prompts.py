@@ -4,6 +4,11 @@ import json
 
 LANGUAGE_RULE = "所有输出内容必须与【对方消息】使用同一种语言（对方用英文就全部用英文，用中文就全部用中文）；JSON 的键名保持英文不变。"
 
+HARD_RULES = """以下三条是硬性规则：
+   - 不编造事实：只能使用对方消息和场景补充里出现的信息，绝不替用户编造借口（如加班、生病、有约、已有对象），需要理由时只用用户的真实立场或场景里已给出的信息。
+   - 不留让步口子：用户要拒绝时就明确拒绝，不要用"以后再说""过段时间""明年再见"之类的说法给对方留下再次施压的空间。
+   - 长度克制：与原消息长度相当，中文一般 30-80 字、英文 20-60 词；幽默只需一两个巧妙的点，不要堆砌段子；不得出现 XX、[名字] 之类的占位符。"""
+
 EVAL_DIMENSIONS = """- empathy（共情与礼貌）：是否照顾到对方情绪与体面，不冷漠、不刻薄
 - boundary（边界守护）：是否守住用户的立场与利益，没有被施压后过度道歉、无底线让步
 - clarity（清晰有效）：是否把态度和下一步说清楚，对方看完知道该怎么办
@@ -83,11 +88,12 @@ def get_writer_prompt(message, context, tone, perception, strategy, feedback=Non
 {revision}
 ### [写作要求]
 1. 三条回复分别对应策略里的角度 A / B / C。
-2. 像真人发微信：口语化、有分寸，长度与原消息的正式程度相称，不要写成公文或演讲稿。
+2. 像真人发微信：口语化、有分寸，不要写成公文或演讲稿；对方消息约 {len(message)} 个字符，回复长度与之相称。
 3. 禁止 AI 腔：不要用"我理解你的感受""首先…其次…最后""希望你能理解"之类的套话，不要用 emoji 堆砌。
 4. 守住边界：可以客气，但不要无理由道歉，不要做出用户没打算做的承诺。
 5. 不要阴阳怪气、不要人身攻击；即使拒绝也要温柔而坚定。
-6. {LANGUAGE_RULE}
+6. {HARD_RULES}
+7. {LANGUAGE_RULE}
 
 ### [输出 JSON]
 {{
@@ -112,18 +118,23 @@ def get_critic_prompt(message, context, tone, perception, replies):
 ### [评分维度]（每项 1-5 分，5 分为最好，请拉开差距，不要一律给 4 分）
 {EVAL_DIMENSIONS}
 
+### [一票否决项]（逐条检查，违反任意一项的回复不能被推荐）
+- fabricated：是否编造了对方消息和场景补充里都没有的事实或借口（如加班、生病、有约）
+- leaves_opening：用户本意是拒绝时，是否用"以后再说""明年再见"等说法留下了让步的口子
+- too_long：是否明显超出聊天场景的合理长度（中文超过约 100 字、英文超过约 70 词），或含有 XX 之类的占位符
+
 ### [任务]
-1. 给每条回复的五个维度打分，并用一句话指出它最大的问题。
-2. 选出最适合用户直接发送的一条，说明理由。
-3. 如果三条回复里最好的一条仍有任意维度低于 3 分，把 needs_revision 设为 true，并给出具体修改意见。
+1. 给每条回复的五个维度打分，标记三个否决项，并用一句话指出它最大的问题。
+2. 从没有触发否决项的回复中选出最适合用户直接发送的一条，说明理由。
+3. 如果三条都触发了否决项，或者最好的一条仍有任意维度低于 3 分，把 needs_revision 设为 true，并给出具体修改意见。
 {LANGUAGE_RULE}
 
 ### [输出 JSON]
 {{
     "scores": [
-        {{"id": "A", "empathy": 0, "boundary": 0, "clarity": 0, "context_fit": 0, "naturalness": 0, "issue": "最大问题"}},
-        {{"id": "B", "empathy": 0, "boundary": 0, "clarity": 0, "context_fit": 0, "naturalness": 0, "issue": "最大问题"}},
-        {{"id": "C", "empathy": 0, "boundary": 0, "clarity": 0, "context_fit": 0, "naturalness": 0, "issue": "最大问题"}}
+        {{"id": "A", "empathy": 0, "boundary": 0, "clarity": 0, "context_fit": 0, "naturalness": 0, "fabricated": false, "leaves_opening": false, "too_long": false, "issue": "最大问题"}},
+        {{"id": "B", "empathy": 0, "boundary": 0, "clarity": 0, "context_fit": 0, "naturalness": 0, "fabricated": false, "leaves_opening": false, "too_long": false, "issue": "最大问题"}},
+        {{"id": "C", "empathy": 0, "boundary": 0, "clarity": 0, "context_fit": 0, "naturalness": 0, "fabricated": false, "leaves_opening": false, "too_long": false, "issue": "最大问题"}}
     ],
     "best_id": "A / B / C",
     "reason": "为什么推荐这一条（50 字以内）",

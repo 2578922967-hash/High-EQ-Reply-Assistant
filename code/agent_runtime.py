@@ -12,6 +12,7 @@ from agent_prompts import (
 )
 
 DIMENSIONS = ["empathy", "boundary", "clarity", "context_fit", "naturalness"]
+VETO_FLAGS = ["fabricated", "leaves_opening", "too_long"]
 MAX_REVISIONS = 1
 STAGE_TEMPERATURE = {"perception": 0.2, "strategy": 0.4, "writer": 0.8, "critic": 0.1}
 
@@ -29,6 +30,10 @@ def _run_stage(trace, name, system_prompt, user_message, api_key, model):
 
 def _total(score: dict) -> int:
     return sum(int(score.get(d, 0) or 0) for d in DIMENSIONS)
+
+
+def _violations(score: dict) -> list:
+    return [flag for flag in VETO_FLAGS if score.get(flag) is True or str(score.get(flag)).lower() == "true"]
 
 
 def run_agent_reply(message: str, tone: str, context: str = "", model: str = "qwen3.8-max", api_key: str = None) -> dict:
@@ -56,16 +61,24 @@ def run_agent_reply(message: str, tone: str, context: str = "", model: str = "qw
         replies = written.get("replies", [])[:3]
         critique = _run_stage(trace, f"critic{suffix}",
                               get_critic_prompt(message, context, tone, perception, replies), go, api_key, model)
-        if not critique.get("needs_revision") or round_idx == MAX_REVISIONS:
+        scores = {s.get("id"): s for s in critique.get("scores", [])}
+        all_vetoed = bool(scores) and all(_violations(s) for s in scores.values())
+        if (not critique.get("needs_revision") and not all_vetoed) or round_idx == MAX_REVISIONS:
             break
         feedback = {"advice": critique.get("revision_advice"),
-                    "issues": [s.get("issue") for s in critique.get("scores", [])]}
+                    "issues": [f'{s.get("id")}: {s.get("issue")} {_violations(s) or ""}' for s in scores.values()]}
 
-    scores = {s.get("id"): s for s in critique.get("scores", [])}
+    clean = {k: s for k, s in scores.items() if not _violations(s)}
+    pool = clean or scores
     best_id = critique.get("best_id")
-    if best_id not in scores and scores:
-        best_id = max(scores, key=lambda k: _total(scores[k]))
-    ordered = sorted(replies, key=lambda r: (r.get("id") != best_id, -_total(scores.get(r.get("id"), {}))))
+    if best_id not in pool and pool:
+        best_id = max(pool, key=lambda k: _total(pool[k]))
+
+    def rank(r):
+        s = scores.get(r.get("id"), {})
+        return (r.get("id") != best_id, bool(_violations(s)), -_total(s))
+
+    ordered = sorted(replies, key=rank)
 
     result = {
         "mode": "agent",
@@ -74,7 +87,7 @@ def run_agent_reply(message: str, tone: str, context: str = "", model: str = "qw
         "strategy": strategy,
         "candidates": [
             {"id": r.get("id"), "text": r.get("text", ""), "scores": scores.get(r.get("id"), {}),
-             "total": _total(scores.get(r.get("id"), {}))}
+             "total": _total(scores.get(r.get("id"), {})), "violations": _violations(scores.get(r.get("id"), {}))}
             for r in ordered
         ],
         "best_id": best_id,

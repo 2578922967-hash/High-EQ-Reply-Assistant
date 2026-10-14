@@ -94,6 +94,33 @@ def judge_prompt(case, items):
 请为每一条候选回复都给出评分。"""
 
 
+def factcheck_prompt(case, items):
+    listing = "\n".join(f'- [{it["rid"]}] {it["text"]}' for it in items)
+    return f"""你是一位事实核查员。下面是同一条消息的多条候选回复，来源已被隐去且顺序随机。
+请逐条判断：回复是否替用户编造了「对方消息」和「场景补充」里都没有出现的具体事实或借口（例如加班、生病、手头紧、已有安排、已有对象等）。
+表达立场、感受、玩笑式的夸张修辞不算编造；只有会被当真的具体事实才算。
+
+### [场景]
+- 对方消息：{case['message']}
+- 场景补充：{case['context']}
+
+### [候选回复]
+{listing}
+
+### [输出 JSON]
+{{"checks": [{{"rid": "R1", "fabricated": false, "evidence": "编造的内容，没有则留空"}}]}}
+请为每一条候选回复都给出判断。"""
+
+
+def factcheck_case(case, items, judge_model):
+    parsed, _ = call_llm_json(factcheck_prompt(case, items), "请严格按要求输出 JSON。", None, judge_model, 0.0, thinking=True)
+    by_rid = {c.get("rid"): c for c in parsed.get("checks", [])}
+    for it in items:
+        c = by_rid.get(it["rid"], {})
+        it["fabricated"] = c.get("fabricated") is True or str(c.get("fabricated")).lower() == "true"
+        it["fabrication_evidence"] = c.get("evidence", "")
+
+
 def judge_case(record, judge_model, seed):
     case = record["case"]
     items = []
@@ -113,6 +140,7 @@ def judge_case(record, judge_model, seed):
         it["scores"] = {d: int(s.get(d, 0) or 0) for d in DIMENSIONS}
         it["total"] = sum(it["scores"].values())
         it["judge_best"] = parsed.get("best_rid") == it["rid"]
+    factcheck_case(case, items, judge_model)
     print(f"  judged {case['id']}", flush=True)
     return {"case_id": case["id"], "lang": case["lang"], "category": case["category"], "items": items}
 
@@ -141,7 +169,12 @@ def summarize(records, judgments, gen_model, judge_model):
             "latency_s": mean(g["latency_ms"] for g in gens if not g["error"]) / 1000 if any(not g["error"] for g in gens) else 0,
             "calls": mean(g["llm_calls"] for g in gens if not g["error"]) if any(not g["error"] for g in gens) else 0,
             "fail_rate": sum(1 for g in gens if g["error"]) / max(len(gens), 1),
+            "fab_all": mean(1 if it.get("fabricated") else 0 for it in all_items) if all_items else 0,
+            "fab_first": mean(1 if it.get("fabricated") else 0 for it in first) if first else 0,
+            "chars_all": mean(len(it["text"]) for it in all_items) if all_items else 0,
+            "chars_first": mean(len(it["text"]) for it in first) if first else 0,
         }
+    has_factcheck = any("fabricated" in it for j in judgments for it in j["items"])
 
     wins = {"v2_vs_baseline": [0, 0, 0], "v2_vs_v1": [0, 0, 0]}
     for j in judgments:
@@ -155,7 +188,8 @@ def summarize(records, judgments, gen_model, judge_model):
         for it in j["items"]:
             rows.append({"case_id": j["case_id"], "lang": j["lang"], "category": j["category"],
                          "system": it["system"], "reply_idx": it["idx"], **it["scores"], "total": it["total"],
-                         "judge_best": it["judge_best"], "text": it["text"]})
+                         "judge_best": it["judge_best"], "fabricated": it.get("fabricated", ""),
+                         "fabrication_evidence": it.get("fabrication_evidence", ""), "text": it["text"]})
 
     dim_names = {"empathy": "共情礼貌", "boundary": "边界守护", "clarity": "清晰有效",
                  "context_fit": "场景适配", "naturalness": "自然度"}
@@ -180,6 +214,14 @@ def summarize(records, judgments, gen_model, judge_model):
     for d in DIMENSIONS:
         lines.append(f"| {dim_names[d]} | " + " | ".join(f"{stats[n]['dims_all'][d]:.2f}" for n in SYSTEMS) + " |")
 
+    lines.append("\n## 事实与长度检查（独立于 5 维打分）\n")
+    lines.append("| 系统 | 编造事实率（首条） | 编造事实率（全部） | 平均字数（首条） | 平均字数（全部） |")
+    lines.append("| :--- | :---: | :---: | :---: | :---: |")
+    for name in SYSTEMS:
+        s = stats[name]
+        fab = (f"{s['fab_first']:.0%} | {s['fab_all']:.0%}" if has_factcheck else "- | -")
+        lines.append(f"| {SYSTEM_LABELS[name]} | {fab} | {s['chars_first']:.0f} | {s['chars_all']:.0f} |")
+
     lines.append("\n## 首条回复逐案对比（Agent 胜 / 平 / 负）\n")
     for key, label in (("v2_vs_baseline", "Agent vs 原生 AI"), ("v2_vs_v1", "Agent vs 当前版本")):
         w, t, l = wins[key]
@@ -193,6 +235,7 @@ def summarize(records, judgments, gen_model, judge_model):
     lines.append("- 评审为大模型自动打分（LLM-as-judge），可能与真人偏好存在偏差，结论需结合真人盲测验证。")
     lines.append("- \"首条回复\"指用户界面上第一个看到的回复：Agent 为评审选出的最优条，另外两个系统为模型输出的第一条。")
     lines.append("- 测试集规模较小，单次运行存在随机波动，差距小于 1 分时不宜下强结论。")
+    lines.append("- 编造事实由评审模型单独盲审判断（是否虚构了消息和场景里没有的具体借口），不计入 5 维总分；字数按字符数统计。")
     return rows, "\n".join(lines) + "\n"
 
 
@@ -204,7 +247,28 @@ def main():
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--seed", default="hera")
     parser.add_argument("--judge-only", default="")
+    parser.add_argument("--factcheck-only", default="", help="在已有评分结果上只补充事实核查，不重新打分")
     args = parser.parse_args()
+
+    if args.factcheck_only:
+        out_dir = args.factcheck_only
+        with open(os.path.join(out_dir, "generations.jsonl"), encoding="utf-8") as f:
+            records = [json.loads(line) for line in f]
+        with open(os.path.join(out_dir, "judgments.jsonl"), encoding="utf-8") as f:
+            judgments = [json.loads(line) for line in f]
+        cases = {r["case"]["id"]: r["case"] for r in records}
+
+        def safe_check(j):
+            try:
+                factcheck_case(cases[j["case_id"]], j["items"], args.judge_model)
+                print(f"  checked {j['case_id']}", flush=True)
+            except Exception as e:
+                print(f"  factcheck failed {j['case_id']}: {e}", flush=True)
+
+        with ThreadPoolExecutor(args.workers) as pool:
+            list(pool.map(safe_check, judgments))
+        write_outputs(out_dir, records, judgments, args.gen_model, args.judge_model)
+        return
 
     if args.judge_only:
         out_dir = args.judge_only
@@ -235,11 +299,15 @@ def main():
 
     with ThreadPoolExecutor(args.workers) as pool:
         judgments = [j for j in pool.map(safe_judge, records) if j]
+    write_outputs(out_dir, records, judgments, args.gen_model, args.judge_model)
+
+
+def write_outputs(out_dir, records, judgments, gen_model, judge_model):
     with open(os.path.join(out_dir, "judgments.jsonl"), "w", encoding="utf-8") as f:
         for j in judgments:
             f.write(json.dumps(j, ensure_ascii=False) + "\n")
 
-    rows, report = summarize(records, judgments, args.gen_model, args.judge_model)
+    rows, report = summarize(records, judgments, gen_model, judge_model)
     with open(os.path.join(out_dir, "scores.csv"), "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
