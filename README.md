@@ -4,9 +4,17 @@
 
 ## 演示
 
-[![演示视频](docs/demo-cover.png)](docs/demo.mp4)
+**即时高情商回复**（Agent 模式：感知 → 策略 → 撰写 → 评审）
 
-点击图片查看完整演示视频（约 3 分钟）：即时高情商回复（Agent 模式：感知 → 策略 → 撰写 → 评审）与场景沙盘推演。
+![即时高情商回复](docs/instant-reply.gif)
+
+**场景沙盘推演**
+
+![场景沙盘推演](docs/sandbox.gif)
+
+完整演示视频（约 1 分钟）：
+
+[![演示视频](docs/demo-cover.png)](docs/demo.mp4)
 
 ## 项目定位
 
@@ -182,6 +190,7 @@ python eval/eval_harness.py --gen-model qwen3.8-max --judge-model deepseek-v4-pr
 ├── docs/
 │   ├── 7040-report.docx    # 完整项目报告
 │   ├── 7040-OBABA-PPT.pdf  # 项目展示材料
-│   └── demo.mp4            # 演示视频
+│   ├── demo.mp4            # 演示视频
+│   └── *.gif               # 功能演示动图
 └── render.yaml             # Render 部署配置
 ```
